@@ -1,0 +1,5 @@
+google-generativeai
+gspread
+google-auth
+playwright
+2captcha-python
