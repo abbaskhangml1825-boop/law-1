@@ -1,0 +1,50 @@
+name: Run AI Contact Form Bot
+
+on:
+  schedule:
+    # Yeh cron job har din UTC ke mutabik dopahar 12:00 baje (IST 5:30 baje shaam) bot chalayegi
+    - cron: '0 12 * * *'
+  workflow_dispatch:
+    # Isse aap GitHub UI par jaakar manually "Run workflow" button daba kar kabhi bhi bot start kar sakte hain
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository Code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        cache: 'pip' # Dependencies jaldi install karne ke liye caching
+
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install google-generativeai gspread google-auth playwright twocaptcha
+
+    - name: Install Playwright Browsers & Dependencies
+      run: |
+        # Playwright ke chromium browser aur uske linux OS system dependencies ko install karta hai
+        playwright install chromium --with-deps
+
+    - name: Run Form Bot Script
+      env:
+        # Aapke script ke saare Environment Variables jo GitHub Secrets se aayenge
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        CAPTCHA_API_KEY: ${{ secrets.CAPTCHA_API_KEY }}
+        GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+        GOOGLE_CREDS_JSON: ${{ secrets.GOOGLE_CREDS_JSON }}
+      run: |
+        python main.py # Agar aapki file ka naam alag hai (jaise bot.py), toh use yaha badal dein
+
+    - name: Upload Screenshots on Failure
+      if: failure() # Agar bot kisi error ki wajah se crash hota hai, toh screenshots save ho jayenge
+      uses: actions/upload-artifact@v4
+      with:
+        name: bot-error-screenshots
+        path: screenshots/
+        retention-days: 7
